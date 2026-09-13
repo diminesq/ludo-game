@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ludo Online</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #1e293b; }
+    .card { background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; }
+    h2, h3 { margin-top: 0; text-align: center; }
+    .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
+    label { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+    input, select, button { padding: 10px; font-size: 1rem; border-radius: 6px; border: 1px solid #cbd5e1; }
+    button { background: #2563eb; color: #ffffff; border: none; cursor: pointer; font-weight: 600; margin-top: 8px; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .hidden { display: none !important; }
+    .invite-box { background: #f1f5f9; padding: 8px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; word-break: break-all; border: 1px dashed #94a3b8; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 6px 10px; background: #f8fafc; border-radius: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    
+    /* Zona de Joc */
+    #game-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(15, 30px);
+      grid-template-rows: repeat(15, 30px);
+      gap: 2px;
+      background: #334155;
+      padding: 6px;
+      border-radius: 8px;
+    }
+    .cell { background: #ffffff; border-radius: 2px; display: flex; justify-content: center; align-items: center; position: relative; }
+    .cell-blue { background: #60a5fa !important; }
+    .cell-red { background: #f87171 !important; }
+    .cell-yellow { background: #fde047 !important; }
+    .cell-green { background: #4ade80 !important; }
+    .cell-empty { background: #1e293b; }
+
+    /* Pioni */
+    .pawn {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid white; cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .pawn-Blue { background: #1d4ed8; }
+    .pawn-Red { background: #b91c1c; }
+    .pawn-Yellow { background: #d97706; }
+    .pawn-Green { background: #15803d; }
+    
+    .status-panel { background: white; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; }
+    .dice-box { font-size: 1.5rem; font-weight: bold; width: 45px; height: 45px; border: 2px solid #334155; border-radius: 8px; display: flex; justify-content: center; align-items: center; }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Lobby Menu -->
+  <div class="card" id="menu-view">
+    <h2>Ludo Multiplayer</h2>
+    <div class="form-group">
+      <label>Your Name:</label>
+      <input type="text" id="player-name" placeholder="e.g., Alex" />
+    </div>
+    <hr>
+    <h3>Create Room</h3>
+    <div class="form-group">
+      <label>Max Players:</label>
+      <select id="max-players">
+        <option value="2">2 Players</option>
+        <option value="3">3 Players</option>
+        <option value="4" selected>4 Players</option>
+      </select>
+      <button onclick="createRoom()">Create Room</button>
+    </div>
+    <hr>
+    <h3>Join Room</h3>
+    <div class="form-group">
+      <input type="text" id="room-code-input" placeholder="Room Code" />
+      <button onclick="joinRoom()">Join Game</button>
+    </div>
+  </div>
+
+  <!-- 2. Waiting Room -->
+  <div class="card hidden" id="lobby-view">
+    <h2>Waiting Room</h2>
+    <p>Share invite link:</p>
+    <div class="invite-box" id="invite-link"></div>
+    <p>Room Code: <strong id="display-code"></strong></p>
+    <ul id="players-list"></ul>
+    <button id="start-btn" class="hidden" onclick="startGame()">Start Game</button>
+  </div>
+
+  <!-- 3. Active Game Screen -->
+  <div id="game-container" class="hidden">
+    <div class="status-panel">
+      <div>Turn: <strong id="turn-txt">None</strong></div>
+      <div class="dice-box" id="dice-val">-</div>
+      <button id="roll-btn" onclick="rollDice()">Roll Dice</button>
+    </div>
+    <div class="game-board" id="board"></div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentRoomCode = null;
+    let myColor = null;
+    let isHost = false;
+    let currentTurnColor = null;
+    let currentPawns = null;
+
+    // Reteaua comuna de 40 pozitii mapata pe coordonate (Row, Col) 0-14
+    const TRACK_COORDS = [
+      [6,1], [6,2], [6,3], [6,4], [6,5], [5,6], [4,6], [3,6], [2,6], [1,6], [0,6],
+      [0,7], [0,8], [1,8], [2,8], [3,8], [4,8], [5,8], [6,9], [6,10], [6,11], [6,12],
+      [6,13], [6,14], [7,14], [8,14], [8,13], [8,12], [8,11], [8,10], [8,9], [9,8],
+      [10,8], [11,8], [12,8], [13,8], [14,8], [14,7], [14,6], [13,6]
+    ];
+
+    const START_OFFSETS = { Blue: 0, Red: 10, Yellow: 20, Green: 30 };
+
+    // Pozitiile din baza pentru pioni
+    const BASE_COORDS = {
+      Blue: [[2,2], [2,3], [3,2], [3,3]],
+      Red: [[2,11], [2,12], [3,11], [3,12]],
+      Yellow: [[11,11], [11,12], [12,11], [12,12]],
+      Green: [[11,2], [11,3], [12,2], [12,3]]
+    };
+
+    function createRoom() {
+      const playerName = document.getElementById('player-name').value.trim();
+      const maxPlayers = document.getElementById('max-players').value;
+      if (!playerName) return alert('Enter your name!');
+      socket.emit('create_room', { playerName, maxPlayers });
+    }
+
+    function joinRoom() {
+      const playerName = document.getElementById('player-name').value.trim();
+      const roomCode = document.getElementById('room-code-input').value.trim();
+      if (!playerName || !roomCode) return alert('Please enter both name and code!');
+      socket.emit('join_room', { playerName, roomCode });
+    }
+
+    function startGame() {
+      socket.emit('start_game', currentRoomCode);
+    }
+
+    function rollDice() {
+      socket.emit('roll_dice', currentRoomCode);
+    }
+
+    function movePawn(idx) {
+      if (myColor !== currentTurnColor) return;
+      socket.emit('move_pawn', { roomCode: currentRoomCode, pawnIndex: idx });
+    }
+
+    socket.on('room_created', ({ roomCode, room }) => {
+      myColor = room.players[0].color;
+      isHost = true;
+      enterLobby(roomCode, room.players);
+      document.getElementById('start-btn').classList.remove('hidden');
+    });
+
+    socket.on('joined_successfully', ({ roomCode, room }) => {
+      myColor = room.players[room.players.length - 1].color;
+      enterLobby(roomCode, room.players);
+    });
+
+    socket.on('update_players', (players) => {
+      const list = document.getElementById('players-list');
+      list.innerHTML = '';
+      players.forEach(p => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${p.name}</strong> <span>${p.color}</span>`;
+        list.appendChild(li);
+      });
+    });
+
+    socket.on('game_started', ({ turnColor, pawns }) => {
+      document.getElementById('lobby-view').classList.add('hidden');
+      document.getElementById('game-container').classList.remove('hidden');
+      setupBoard();
+      currentPawns = pawns;
+      setTurn(turnColor);
+      renderPawns(pawns);
+    });
+
+    socket.on('dice_rolled', ({ dice, turnColor }) => {
+      document.getElementById('dice-val').innerText = dice;
+      if (myColor === turnColor) {
+        document.getElementById('roll-btn').disabled = true;
+      }
+    });
+
+    socket.on('state_update', ({ pawns, turnColor }) => {
+      currentPawns = pawns;
+      setTurn(turnColor);
+      renderPawns(pawns);
+    });
+
+    function setTurn(color) {
+      currentTurnColor = color;
+      const turnTxt = document.getElementById('turn-txt');
+      turnTxt.innerText = color;
+      turnTxt.style.color = color.toLowerCase();
+      document.getElementById('roll-btn').disabled = (myColor !== color);
+    }
+
+    function enterLobby(code, players) {
+      currentRoomCode = code;
+      document.getElementById('menu-view').classList.add('hidden');
+      document.getElementById('lobby-view').classList.remove('hidden');
+      document.getElementById('invite-link').innerText = `${window.location.origin}?room=${code}`;
+      document.getElementById('display-code').innerText = code;
+    }
+
+    function setupBoard() {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.id = `cell-${r}-${c}`;
+          
+          // Colorare colturi (baze)
+          if (r < 6 && c < 6) cell.classList.add('cell-blue');
+          else if (r < 6 && c > 8) cell.classList.add('cell-red');
+          else if (r > 8 && c > 8) cell.classList.add('cell-yellow');
+          else if (r > 8 && c < 6) cell.classList.add('cell-green');
+          
+          board.appendChild(cell);
+        }
+      }
+    }
+
+    function renderPawns(pawns) {
+      document.querySelectorAll('.pawn').forEach(el => el.remove());
+
+      for (const color in pawns) {
+        pawns[color].forEach((pos, idx) => {
+          let coords = null;
+          if (pos === -1) {
+            coords = BASE_COORDS[color][idx];
+          } else if (pos < 40) {
+            const globalPos = (pos + START_OFFSETS[color]) % 40;
+            coords = TRACK_COORDS[globalPos];
+          }
+
+          if (coords) {
+            const cell = document.getElementById(`cell-${coords[0]}-${coords[1]}`);
+            if (cell) {
+              const p = document.createElement('div');
+              p.className = `pawn pawn-${color}`;
+              if (color === myColor) {
+                p.onclick = () => movePawn(idx);
+              }
+              cell.appendChild(p);
+            }
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
