@@ -32,7 +32,7 @@
       transition: transform 0.1s, box-shadow 0.1s;
     }
     button:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(37,99,235,0.4); }
-    button:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+    button:disabled { background: #64748b !important; box-shadow: none !important; cursor: not-allowed; }
 
     .hidden { display: none !important; }
     .invite-box { background: #f8fafc; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; border: 1px dashed #94a3b8; word-break: break-all; margin: 10px 0; }
@@ -54,7 +54,7 @@
     }
 
     /* 3D-ish Dice */
-    .dice-container { perspective: 600px; width: 55px; height: 55px; }
+    .dice-container { perspective: 600px; width: 55px; height: 55px; cursor: pointer; }
     .dice {
       width: 55px; height: 55px;
       background: #ffffff;
@@ -112,13 +112,11 @@
     .pawn {
       width: 24px; height: 24px;
       border-radius: 50%;
-      cursor: pointer;
       position: relative;
       box-shadow: 0 6px 8px rgba(0,0,0,0.5);
       transition: transform 0.15s ease;
       z-index: 5;
     }
-    .pawn:hover { transform: scale(1.15) translateY(-2px); }
     .pawn::after {
       content: ''; position: absolute; top: 3px; left: 5px;
       width: 6px; height: 4px; border-radius: 50%;
@@ -129,11 +127,23 @@
     .pawn-Red { background: radial-gradient(circle at 35% 35%, #f87171, #b91c1c); border: 2px solid #fca5a5; }
     .pawn-Yellow { background: radial-gradient(circle at 35% 35%, #fde047, #b45309); border: 2px solid #fef08a; }
     .pawn-Green { background: radial-gradient(circle at 35% 35%, #4ade80, #15803d); border: 2px solid #86efac; }
+
+    /* Efect de selectie pion miscabil */
+    .pawn-selectable {
+      cursor: pointer !important;
+      animation: pulseHighlight 0.8s infinite alternate;
+      border-color: #ffffff !important;
+      transform: scale(1.15);
+    }
+
+    @keyframes pulseHighlight {
+      0% { box-shadow: 0 0 6px 2px #fff, 0 6px 8px rgba(0,0,0,0.5); transform: translateY(0) scale(1.15); }
+      100% { box-shadow: 0 0 14px 4px #fbbf24, 0 8px 12px rgba(0,0,0,0.6); transform: translateY(-3px) scale(1.22); }
+    }
   </style>
 </head>
 <body>
 
-  <!-- Menu View -->
   <div class="card" id="menu-view">
     <h2>Ludo 3D Match</h2>
     <div class="form-group">
@@ -159,7 +169,6 @@
     </div>
   </div>
 
-  <!-- Waiting Room -->
   <div class="card hidden" id="lobby-view">
     <h2>Game Lobby</h2>
     <p style="font-size: 0.9rem;">Invite Link:</p>
@@ -169,12 +178,10 @@
     <button id="start-btn" class="hidden" onclick="startGame()">Start Match</button>
   </div>
 
-  <!-- Board Screen -->
   <div id="game-container" class="hidden">
     <div class="status-panel">
       <div>Turn: <strong id="turn-txt">-</strong></div>
       
-      <!-- Interactive 3D Dice -->
       <div class="dice-container" onclick="rollDice()">
         <div class="dice" id="dice-cube">
           <div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div>
@@ -196,6 +203,7 @@
     let currentRoomCode = null;
     let myColor = null;
     let currentTurnColor = null;
+    let activeColorsList = ['Blue', 'Red', 'Yellow', 'Green'];
 
     const TRACK_COORDS = [
       [6,1], [6,2], [6,3], [6,4], [6,5], [5,6], [4,6], [3,6], [2,6], [1,6], [0,6],
@@ -213,7 +221,6 @@
       Green: [[11,2], [11,3], [12,2], [12,3]]
     };
 
-    // Punctele zarului corespunzatoare fetelor 1-6
     const DICE_PATTERNS = {
       1: [5],
       2: [1, 9],
@@ -275,22 +282,28 @@
     socket.on('game_started', ({ turnColor, pawns, activeColors }) => {
       document.getElementById('lobby-view').classList.add('hidden');
       document.getElementById('game-container').classList.remove('hidden');
+      activeColorsList = activeColors;
       setupBoard(activeColors);
       setTurn(turnColor);
-      renderPawns(pawns, activeColors);
+      renderPawns(pawns, []);
       displayDice(1);
     });
 
-    socket.on('dice_rolled', ({ dice, turnColor }) => {
+    socket.on('dice_rolled', ({ dice, turnColor, movableIndices }) => {
       animateDice(dice);
+      // Blocăm butonul de zar cât timp jucătorul trebuie să aleagă piesa de mutat
+      document.getElementById('roll-btn').disabled = true;
+
       if (myColor === turnColor) {
-        document.getElementById('roll-btn').disabled = true;
+        renderPawns(lastPawnsState, movableIndices);
       }
     });
 
+    let lastPawnsState = {};
     socket.on('state_update', ({ pawns, turnColor }) => {
+      lastPawnsState = pawns;
       setTurn(turnColor);
-      renderPawns(pawns);
+      renderPawns(pawns, []);
     });
 
     function setTurn(color) {
@@ -328,7 +341,7 @@
       });
     }
 
-    function setupBoard(activeColors = ['Blue', 'Red', 'Yellow', 'Green']) {
+    function setupBoard(activeColors) {
       const board = document.getElementById('board');
       board.innerHTML = '';
 
@@ -338,7 +351,6 @@
           cell.className = 'cell';
           cell.id = `cell-${r}-${c}`;
 
-          // Identificare baze si stilizare dinamica
           if (r < 6 && c < 6) {
             cell.classList.add(activeColors.includes('Blue') ? 'cell-blue' : 'cell-disabled');
           } else if (r < 6 && c > 8) {
@@ -354,11 +366,13 @@
       }
     }
 
-    function renderPawns(pawns, activeColors = ['Blue', 'Red', 'Yellow', 'Green']) {
+    function renderPawns(pawns, movableIndices = []) {
+      if (!pawns) return;
+      lastPawnsState = pawns;
       document.querySelectorAll('.pawn').forEach(el => el.remove());
 
       for (const color in pawns) {
-        if (!activeColors.includes(color)) continue;
+        if (!activeColorsList.includes(color)) continue;
 
         pawns[color].forEach((pos, idx) => {
           let coords = null;
@@ -374,9 +388,13 @@
             if (cell) {
               const p = document.createElement('div');
               p.className = `pawn pawn-${color}`;
-              if (color === myColor) {
+
+              // Dacă e tura mea și acest pion are mutare permisă de zar
+              if (color === myColor && movableIndices.includes(idx)) {
+                p.classList.add('pawn-selectable');
                 p.onclick = () => movePawn(idx);
               }
+
               cell.appendChild(p);
             }
           }
