@@ -9,14 +9,14 @@
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
+      background: radial-gradient(circle, #2d3748 0%, #1a202c 100%);
       margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh;
-      color: #1e293b;
+      color: #1a202c;
     }
 
     .card {
       background: #ffffff; padding: 2.2rem; border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
       width: 100%; max-width: 420px;
     }
 
@@ -29,9 +29,9 @@
       background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
       color: white; border: none; cursor: pointer; font-weight: 700;
       box-shadow: 0 4px 10px rgba(37,99,235,0.4);
-      transition: transform 0.1s, box-shadow 0.1s;
+      transition: transform 0.1s;
     }
-    button:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(37,99,235,0.4); }
+    button:active { transform: translateY(2px); }
     button:disabled { background: #64748b !important; box-shadow: none !important; cursor: not-allowed; }
 
     .hidden { display: none !important; }
@@ -39,12 +39,12 @@
     ul { list-style: none; padding: 0; }
     li { padding: 8px 12px; background: #f1f5f9; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
 
-    #game-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    #game-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
 
     .status-panel {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
-      padding: 12px 24px;
+      padding: 10px 24px;
       border-radius: 14px;
       display: flex;
       align-items: center;
@@ -52,88 +52,94 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
 
-    .dice-container { perspective: 600px; width: 55px; height: 55px; cursor: pointer; }
+    /* 3D-ish Dice */
+    .dice-container { perspective: 600px; width: 52px; height: 52px; cursor: pointer; }
     .dice {
-      width: 55px; height: 55px;
+      width: 52px; height: 52px;
       background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 6px 0 #cbd5e1, 0 10px 15px rgba(0,0,0,0.3);
+      border-radius: 10px;
+      box-shadow: 0 5px 0 #cbd5e1, 0 8px 15px rgba(0,0,0,0.3);
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(3, 1fr);
-      padding: 6px;
+      padding: 5px;
       box-sizing: border-box;
-      transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+      transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
     }
     .dice.rolling {
       transform: rotateX(720deg) rotateY(1080deg) scale(1.1);
     }
     .dot {
       background: #1e293b; border-radius: 50%; width: 8px; height: 8px;
-      margin: auto; box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
-      visibility: hidden;
+      margin: auto; visibility: hidden;
     }
 
+    /* Board exact ca în imagine (lemn deschis pe fundal) */
     .board-wrapper {
-      background: #0f172a;
-      padding: 16px;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.1);
+      background: #e2b980;
+      padding: 14px;
+      border-radius: 16px;
+      border: 4px solid #b38548;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
     }
     .game-board {
       display: grid;
-      grid-template-columns: repeat(15, 34px);
-      grid-template-rows: repeat(15, 34px);
-      gap: 3px;
-      background: #334155;
-      padding: 6px;
-      border-radius: 12px;
-      box-shadow: inset 0 5px 12px rgba(0,0,0,0.5);
+      grid-template-columns: repeat(15, 32px);
+      grid-template-rows: repeat(15, 32px);
+      background: #000;
+      gap: 1px;
+      border: 2px solid #000;
     }
 
     .cell {
       background: #ffffff;
-      border-radius: 6px;
       display: flex; justify-content: center; align-items: center;
       position: relative;
-      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.05);
     }
-    
-    .cell-blue { background: #3b82f6 !important; }
-    .cell-red { background: #ef4444 !important; }
-    .cell-yellow { background: #eab308 !important; }
-    .cell-green { background: #22c55e !important; }
-    .cell-disabled { background: #475569 !important; opacity: 0.3; filter: grayscale(1); }
 
+    /* Culori identice cu imaginea: Albastru, Portocaliu/Rosu, Galben, Verde */
+    .cell-blue { background: #0070ba !important; }
+    .cell-red { background: #ea580c !important; } /* Portocaliu/Rosu */
+    .cell-yellow { background: #eab308 !important; }
+    .cell-green { background: #16a34a !important; }
+    .cell-wood { background: #e2b980 !important; border: none; }
+    .cell-disabled { background: #94a3b8 !important; opacity: 0.4; }
+
+    /* Cercurile albe din baze */
+    .base-spot {
+      width: 22px; height: 22px; background: #ffffff;
+      border-radius: 50%; display: flex; justify-content: center; align-items: center;
+      border: 1px solid rgba(0,0,0,0.2);
+    }
+
+    /* Pioni 3D-ish */
     .pawn {
-      width: 24px; height: 24px;
+      width: 22px; height: 22px;
       border-radius: 50%;
       position: relative;
-      box-shadow: 0 6px 8px rgba(0,0,0,0.5);
-      transition: transform 0.15s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.4);
       z-index: 5;
     }
     .pawn::after {
-      content: ''; position: absolute; top: 3px; left: 5px;
-      width: 6px; height: 4px; border-radius: 50%;
-      background: rgba(255,255,255,0.6);
+      content: ''; position: absolute; top: 2px; left: 4px;
+      width: 5px; height: 4px; border-radius: 50%;
+      background: rgba(255,255,255,0.7);
     }
 
-    .pawn-Blue { background: radial-gradient(circle at 35% 35%, #60a5fa, #1d4ed8); border: 2px solid #93c5fd; }
-    .pawn-Red { background: radial-gradient(circle at 35% 35%, #f87171, #b91c1c); border: 2px solid #fca5a5; }
-    .pawn-Yellow { background: radial-gradient(circle at 35% 35%, #fde047, #b45309); border: 2px solid #fef08a; }
-    .pawn-Green { background: radial-gradient(circle at 35% 35%, #4ade80, #15803d); border: 2px solid #86efac; }
+    .pawn-Blue { background: radial-gradient(circle at 35% 35%, #38bdf8, #0070ba); border: 2px solid #bae6fd; }
+    .pawn-Red { background: radial-gradient(circle at 35% 35%, #fb923c, #ea580c); border: 2px solid #fed7aa; }
+    .pawn-Yellow { background: radial-gradient(circle at 35% 35%, #fde047, #ca8a04); border: 2px solid #fef08a; }
+    .pawn-Green { background: radial-gradient(circle at 35% 35%, #4ade80, #16a34a); border: 2px solid #bbf7d0; }
 
     .pawn-selectable {
       cursor: pointer !important;
-      animation: pulseHighlight 0.8s infinite alternate;
+      animation: pulseHighlight 0.7s infinite alternate;
       border-color: #ffffff !important;
-      transform: scale(1.15);
     }
 
     @keyframes pulseHighlight {
-      0% { box-shadow: 0 0 6px 2px #fff, 0 6px 8px rgba(0,0,0,0.5); transform: translateY(0) scale(1.15); }
-      100% { box-shadow: 0 0 14px 4px #fbbf24, 0 8px 12px rgba(0,0,0,0.6); transform: translateY(-3px) scale(1.22); }
+      0% { transform: scale(1.1); box-shadow: 0 0 4px 2px #fff; }
+      100% { transform: scale(1.3); box-shadow: 0 0 12px 4px #facc15; }
     }
   </style>
 </head>
@@ -143,8 +149,8 @@
   <div class="card" id="menu-view">
     <h2>Ludo Online</h2>
     <div class="form-group">
-      <label>Player Name:</label>
-      <input type="text" id="player-name" placeholder="Enter your name" />
+      <label>Your Name:</label>
+      <input type="text" id="player-name" placeholder="Enter your name" autofocus />
     </div>
     <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
     <h3>Create Match</h3>
@@ -163,9 +169,8 @@
       <input 
         type="text" 
         id="room-code-input" 
-        placeholder="4-digit code (e.g. 5421)" 
+        placeholder="4-digit code" 
         maxlength="4" 
-        pattern="\d{4}" 
         oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
       />
       <button onclick="joinRoom()">Join Game</button>
@@ -177,7 +182,7 @@
     <h2>Game Lobby</h2>
     <p style="font-size: 0.9rem;">Invite Link:</p>
     <div class="invite-box" id="invite-link"></div>
-    <p>Room Code: <strong id="display-code" style="font-size: 1.2rem; letter-spacing: 2px;"></strong></p>
+    <p>Room Code: <strong id="display-code" style="font-size: 1.3rem; letter-spacing: 2px;"></strong></p>
     <ul id="players-list"></ul>
     <button id="start-btn" class="hidden" onclick="startGame()">Start Match</button>
   </div>
@@ -210,12 +215,83 @@
     let currentTurnColor = null;
     let activeColorsList = ['Blue', 'Red', 'Yellow', 'Green'];
 
+    // --- Web Audio API (Efecte sonore generate nativ în browser) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playDiceSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      // Sunet zaruri care se zdrăngănesc
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150 + Math.random() * 200, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.08);
+        }, i * 60);
+      }
+    }
+
+    function playMoveSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(550, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    }
+
+    function playCaptureSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
+    }
+
+    // --- AUTO-COMPLETARE COD CAMERĂ DIN LINK ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+    if (roomParam) {
+      const input = document.getElementById('room-code-input');
+      input.value = roomParam;
+      // Pune focus direct pe nume pentru completare rapidă
+      document.getElementById('player-name').focus();
+    }
+
+    // Circuitul exterior de 40 căsuțe conform imaginii
     const TRACK_COORDS = [
       [6,1], [6,2], [6,3], [6,4], [6,5], [5,6], [4,6], [3,6], [2,6], [1,6], [0,6],
       [0,7], [0,8], [1,8], [2,8], [3,8], [4,8], [5,8], [6,9], [6,10], [6,11], [6,12],
       [6,13], [6,14], [7,14], [8,14], [8,13], [8,12], [8,11], [8,10], [8,9], [9,8],
       [10,8], [11,8], [12,8], [13,8], [14,8], [14,7], [14,6], [13,6]
     ];
+
+    // Căsuțele de sosire („casa”) din mijloc: 40..43 pentru fiecare culoare
+    const HOME_TRACK_COORDS = {
+      Blue: [[7,1], [7,2], [7,3], [7,4]],
+      Red: [[1,7], [2,7], [3,7], [4,7]],
+      Yellow: [[7,13], [7,12], [7,11], [7,10]],
+      Green: [[13,7], [12,7], [11,7], [10,7]]
+    };
 
     const START_OFFSETS = { Blue: 0, Red: 10, Yellow: 20, Green: 30 };
 
@@ -296,11 +372,20 @@
     });
 
     socket.on('dice_rolled', ({ dice, turnColor, movableIndices }) => {
+      playDiceSound();
       animateDice(dice);
       document.getElementById('roll-btn').disabled = true;
 
       if (myColor === turnColor) {
         renderPawns(lastPawnsState, movableIndices);
+      }
+    });
+
+    socket.on('pawn_moved_sound', ({ captured }) => {
+      if (captured) {
+        playCaptureSound();
+      } else {
+        playMoveSound();
       }
     });
 
@@ -337,7 +422,7 @@
       setTimeout(() => {
         displayDice(value);
         dice.classList.remove('rolling');
-      }, 600);
+      }, 500);
     }
 
     function displayDice(value) {
@@ -360,15 +445,44 @@
           cell.className = 'cell';
           cell.id = `cell-${r}-${c}`;
 
-          if (r < 6 && c < 6) {
-            cell.classList.add(activeColors.includes('Blue') ? 'cell-blue' : 'cell-disabled');
-          } else if (r < 6 && c > 8) {
-            cell.classList.add(activeColors.includes('Red') ? 'cell-red' : 'cell-disabled');
-          } else if (r > 8 && c > 8) {
-            cell.classList.add(activeColors.includes('Yellow') ? 'cell-yellow' : 'cell-disabled');
-          } else if (r > 8 && c < 6) {
-            cell.classList.add(activeColors.includes('Green') ? 'cell-green' : 'cell-disabled');
+          // Fundal lemn în colțuri (în afara cercului bazei)
+          const isCornerArea = (r < 6 && c < 6) || (r < 6 && c > 8) || (r > 8 && c > 8) || (r > 8 && c < 6);
+
+          if (isCornerArea) {
+            cell.classList.add('cell-wood');
+
+            // Cercurile albe din baze pentru pioni
+            const isBaseSpot = (
+              ((r===2||r===3) && (c===2||c===3)) ||
+              ((r===2||r===3) && (c===11||c===12)) ||
+              ((r===11||r===12) && (c===11||c===12)) ||
+              ((r===11||r===12) && (c===2||c===3))
+            );
+
+            if (isBaseSpot) {
+              const spot = document.createElement('div');
+              spot.className = 'base-spot';
+              cell.appendChild(spot);
+            }
           }
+
+          // Căsuțele de start colorate
+          if (r === 6 && c === 1) cell.classList.add('cell-blue');
+          if (r === 1 && c === 8) cell.classList.add('cell-red');
+          if (r === 8 && c === 13) cell.classList.add('cell-yellow');
+          if (r === 13 && c === 6) cell.classList.add('cell-green');
+
+          // Coloanele de final („Casa”) din mijloc
+          if (r === 7 && c >= 1 && c <= 4) cell.classList.add('cell-blue');
+          if (c === 7 && r >= 1 && r <= 4) cell.classList.add('cell-red');
+          if (r === 7 && c >= 10 && c <= 13) cell.classList.add('cell-yellow');
+          if (c === 7 && r >= 10 && r <= 13) cell.classList.add('cell-green');
+
+          // Triunghiurile centrale
+          if (r === 7 && c === 6) cell.classList.add('cell-blue');
+          if (r === 6 && c === 7) cell.classList.add('cell-red');
+          if (r === 7 && c === 8) cell.classList.add('cell-yellow');
+          if (r === 8 && c === 7) cell.classList.add('cell-green');
 
           board.appendChild(cell);
         }
@@ -390,6 +504,8 @@
           } else if (pos < 40) {
             const globalPos = (pos + START_OFFSETS[color]) % 40;
             coords = TRACK_COORDS[globalPos];
+          } else if (pos >= 40 && pos <= 43) {
+            coords = HOME_TRACK_COORDS[color][pos - 40];
           }
 
           if (coords) {
@@ -403,7 +519,13 @@
                 p.onclick = () => movePawn(idx);
               }
 
-              cell.appendChild(p);
+              // Dacă e în bază, îl așezăm în cerculețul alb
+              const spot = cell.querySelector('.base-spot');
+              if (spot) {
+                spot.appendChild(p);
+              } else {
+                cell.appendChild(p);
+              }
             }
           }
         });
@@ -412,10 +534,10 @@
 
     function getColorHex(color) {
       switch(color) {
-        case 'Blue': return '#3b82f6';
-        case 'Red': return '#ef4444';
+        case 'Blue': return '#0070ba';
+        case 'Red': return '#ea580c';
         case 'Yellow': return '#eab308';
-        case 'Green': return '#22c55e';
+        case 'Green': return '#16a34a';
         default: return '#000';
       }
     }
