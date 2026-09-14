@@ -3,113 +3,200 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ludo Online</title>
+  <title>Ludo 3D Experience</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #1e293b; }
-    .card { background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; }
-    h2, h3 { margin-top: 0; text-align: center; }
-    .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
-    label { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
-    input, select, button { padding: 10px; font-size: 1rem; border-radius: 6px; border: 1px solid #cbd5e1; }
-    button { background: #2563eb; color: #ffffff; border: none; cursor: pointer; font-weight: 600; margin-top: 8px; }
-    button:disabled { background: #94a3b8; cursor: not-allowed; }
-    .hidden { display: none !important; }
-    .invite-box { background: #f1f5f9; padding: 8px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; word-break: break-all; border: 1px dashed #94a3b8; }
-    ul { list-style: none; padding: 0; }
-    li { padding: 6px 10px; background: #f8fafc; border-radius: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
+      margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+      color: #1e293b;
+    }
+
+    .card {
+      background: #ffffff; padding: 2.2rem; border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
+      width: 100%; max-width: 420px;
+    }
+
+    h2, h3 { margin-top: 0; text-align: center; color: #0f172a; }
+    .form-group { margin-bottom: 1.2rem; display: flex; flex-direction: column; }
+    label { font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+    input, select, button { padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; }
     
-    /* Zona de Joc */
-    #game-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+    button {
+      background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+      color: white; border: none; cursor: pointer; font-weight: 700;
+      box-shadow: 0 4px 10px rgba(37,99,235,0.4);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    button:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(37,99,235,0.4); }
+    button:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+
+    .hidden { display: none !important; }
+    .invite-box { background: #f8fafc; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; border: 1px dashed #94a3b8; word-break: break-all; margin: 10px 0; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 8px 12px; background: #f1f5f9; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Game Layout */
+    #game-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+    .status-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 12px 24px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    /* 3D-ish Dice */
+    .dice-container { perspective: 600px; width: 55px; height: 55px; }
+    .dice {
+      width: 55px; height: 55px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 6px 0 #cbd5e1, 0 10px 15px rgba(0,0,0,0.3);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 6px;
+      box-sizing: border-box;
+      transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+    .dice.rolling {
+      transform: rotateX(720deg) rotateY(1080deg) scale(1.1);
+    }
+    .dot {
+      background: #1e293b; border-radius: 50%; width: 8px; height: 8px;
+      margin: auto; box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+      visibility: hidden;
+    }
+
+    /* 3D-ish Ludo Board */
+    .board-wrapper {
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.1);
+    }
     .game-board {
       display: grid;
-      grid-template-columns: repeat(15, 30px);
-      grid-template-rows: repeat(15, 30px);
-      gap: 2px;
+      grid-template-columns: repeat(15, 34px);
+      grid-template-rows: repeat(15, 34px);
+      gap: 3px;
       background: #334155;
       padding: 6px;
-      border-radius: 8px;
+      border-radius: 12px;
+      box-shadow: inset 0 5px 12px rgba(0,0,0,0.5);
     }
-    .cell { background: #ffffff; border-radius: 2px; display: flex; justify-content: center; align-items: center; position: relative; }
-    .cell-blue { background: #60a5fa !important; }
-    .cell-red { background: #f87171 !important; }
-    .cell-yellow { background: #fde047 !important; }
-    .cell-green { background: #4ade80 !important; }
-    .cell-empty { background: #1e293b; }
 
-    /* Pioni */
-    .pawn {
-      width: 20px; height: 20px; border-radius: 50%;
-      border: 2px solid white; cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    .cell {
+      background: #ffffff;
+      border-radius: 6px;
+      display: flex; justify-content: center; align-items: center;
+      position: relative;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.05);
     }
-    .pawn-Blue { background: #1d4ed8; }
-    .pawn-Red { background: #b91c1c; }
-    .pawn-Yellow { background: #d97706; }
-    .pawn-Green { background: #15803d; }
     
-    .status-panel { background: white; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; }
-    .dice-box { font-size: 1.5rem; font-weight: bold; width: 45px; height: 45px; border: 2px solid #334155; border-radius: 8px; display: flex; justify-content: center; align-items: center; }
+    .cell-blue { background: #3b82f6 !important; }
+    .cell-red { background: #ef4444 !important; }
+    .cell-yellow { background: #eab308 !important; }
+    .cell-green { background: #22c55e !important; }
+    .cell-disabled { background: #475569 !important; opacity: 0.3; filter: grayscale(1); }
+
+    /* 3D-ish Pawns */
+    .pawn {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 6px 8px rgba(0,0,0,0.5);
+      transition: transform 0.15s ease;
+      z-index: 5;
+    }
+    .pawn:hover { transform: scale(1.15) translateY(-2px); }
+    .pawn::after {
+      content: ''; position: absolute; top: 3px; left: 5px;
+      width: 6px; height: 4px; border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+    }
+
+    .pawn-Blue { background: radial-gradient(circle at 35% 35%, #60a5fa, #1d4ed8); border: 2px solid #93c5fd; }
+    .pawn-Red { background: radial-gradient(circle at 35% 35%, #f87171, #b91c1c); border: 2px solid #fca5a5; }
+    .pawn-Yellow { background: radial-gradient(circle at 35% 35%, #fde047, #b45309); border: 2px solid #fef08a; }
+    .pawn-Green { background: radial-gradient(circle at 35% 35%, #4ade80, #15803d); border: 2px solid #86efac; }
   </style>
 </head>
 <body>
 
-  <!-- 1. Lobby Menu -->
+  <!-- Menu View -->
   <div class="card" id="menu-view">
-    <h2>Ludo Multiplayer</h2>
+    <h2>Ludo 3D Match</h2>
     <div class="form-group">
-      <label>Your Name:</label>
-      <input type="text" id="player-name" placeholder="e.g., Alex" />
+      <label>Player Name:</label>
+      <input type="text" id="player-name" placeholder="Enter your name" />
     </div>
-    <hr>
-    <h3>Create Room</h3>
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+    <h3>Create Match</h3>
     <div class="form-group">
-      <label>Max Players:</label>
+      <label>Number of Players:</label>
       <select id="max-players">
-        <option value="2">2 Players</option>
-        <option value="3">3 Players</option>
-        <option value="4" selected>4 Players</option>
+        <option value="2">2 Players (Blue vs Yellow)</option>
+        <option value="3">3 Players (Blue, Red, Yellow)</option>
+        <option value="4" selected>4 Players (All Colors)</option>
       </select>
       <button onclick="createRoom()">Create Room</button>
     </div>
-    <hr>
-    <h3>Join Room</h3>
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+    <h3>Join Game</h3>
     <div class="form-group">
-      <input type="text" id="room-code-input" placeholder="Room Code" />
+      <input type="text" id="room-code-input" placeholder="Room Code (e.g. 5GA8K1)" />
       <button onclick="joinRoom()">Join Game</button>
     </div>
   </div>
 
-  <!-- 2. Waiting Room -->
+  <!-- Waiting Room -->
   <div class="card hidden" id="lobby-view">
-    <h2>Waiting Room</h2>
-    <p>Share invite link:</p>
+    <h2>Game Lobby</h2>
+    <p style="font-size: 0.9rem;">Invite Link:</p>
     <div class="invite-box" id="invite-link"></div>
     <p>Room Code: <strong id="display-code"></strong></p>
     <ul id="players-list"></ul>
-    <button id="start-btn" class="hidden" onclick="startGame()">Start Game</button>
+    <button id="start-btn" class="hidden" onclick="startGame()">Start Match</button>
   </div>
 
-  <!-- 3. Active Game Screen -->
+  <!-- Board Screen -->
   <div id="game-container" class="hidden">
     <div class="status-panel">
-      <div>Turn: <strong id="turn-txt">None</strong></div>
-      <div class="dice-box" id="dice-val">-</div>
+      <div>Turn: <strong id="turn-txt">-</strong></div>
+      
+      <!-- Interactive 3D Dice -->
+      <div class="dice-container" onclick="rollDice()">
+        <div class="dice" id="dice-cube">
+          <div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div>
+          <div class="dot" id="d4"></div><div class="dot" id="d5"></div><div class="dot" id="d6"></div>
+          <div class="dot" id="d7"></div><div class="dot" id="d8"></div><div class="dot" id="d9"></div>
+        </div>
+      </div>
+
       <button id="roll-btn" onclick="rollDice()">Roll Dice</button>
     </div>
-    <div class="game-board" id="board"></div>
+
+    <div class="board-wrapper">
+      <div class="game-board" id="board"></div>
+    </div>
   </div>
 
   <script>
     const socket = io();
     let currentRoomCode = null;
     let myColor = null;
-    let isHost = false;
     let currentTurnColor = null;
-    let currentPawns = null;
 
-    // Reteaua comuna de 40 pozitii mapata pe coordonate (Row, Col) 0-14
     const TRACK_COORDS = [
       [6,1], [6,2], [6,3], [6,4], [6,5], [5,6], [4,6], [3,6], [2,6], [1,6], [0,6],
       [0,7], [0,8], [1,8], [2,8], [3,8], [4,8], [5,8], [6,9], [6,10], [6,11], [6,12],
@@ -119,7 +206,6 @@
 
     const START_OFFSETS = { Blue: 0, Red: 10, Yellow: 20, Green: 30 };
 
-    // Pozitiile din baza pentru pioni
     const BASE_COORDS = {
       Blue: [[2,2], [2,3], [3,2], [3,3]],
       Red: [[2,11], [2,12], [3,11], [3,12]],
@@ -127,17 +213,27 @@
       Green: [[11,2], [11,3], [12,2], [12,3]]
     };
 
+    // Punctele zarului corespunzatoare fetelor 1-6
+    const DICE_PATTERNS = {
+      1: [5],
+      2: [1, 9],
+      3: [1, 5, 9],
+      4: [1, 3, 7, 9],
+      5: [1, 3, 5, 7, 9],
+      6: [1, 3, 4, 6, 7, 9]
+    };
+
     function createRoom() {
       const playerName = document.getElementById('player-name').value.trim();
       const maxPlayers = document.getElementById('max-players').value;
-      if (!playerName) return alert('Enter your name!');
+      if (!playerName) return alert('Please enter your name!');
       socket.emit('create_room', { playerName, maxPlayers });
     }
 
     function joinRoom() {
       const playerName = document.getElementById('player-name').value.trim();
       const roomCode = document.getElementById('room-code-input').value.trim();
-      if (!playerName || !roomCode) return alert('Please enter both name and code!');
+      if (!playerName || !roomCode) return alert('Fill in name and room code!');
       socket.emit('join_room', { playerName, roomCode });
     }
 
@@ -146,6 +242,7 @@
     }
 
     function rollDice() {
+      if (myColor !== currentTurnColor) return;
       socket.emit('roll_dice', currentRoomCode);
     }
 
@@ -156,7 +253,6 @@
 
     socket.on('room_created', ({ roomCode, room }) => {
       myColor = room.players[0].color;
-      isHost = true;
       enterLobby(roomCode, room.players);
       document.getElementById('start-btn').classList.remove('hidden');
     });
@@ -171,29 +267,28 @@
       list.innerHTML = '';
       players.forEach(p => {
         const li = document.createElement('li');
-        li.innerHTML = `<strong>${p.name}</strong> <span>${p.color}</span>`;
+        li.innerHTML = `<strong>${p.name}</strong> <span style="color:${getColorHex(p.color)}">${p.color}</span>`;
         list.appendChild(li);
       });
     });
 
-    socket.on('game_started', ({ turnColor, pawns }) => {
+    socket.on('game_started', ({ turnColor, pawns, activeColors }) => {
       document.getElementById('lobby-view').classList.add('hidden');
       document.getElementById('game-container').classList.remove('hidden');
-      setupBoard();
-      currentPawns = pawns;
+      setupBoard(activeColors);
       setTurn(turnColor);
-      renderPawns(pawns);
+      renderPawns(pawns, activeColors);
+      displayDice(1);
     });
 
     socket.on('dice_rolled', ({ dice, turnColor }) => {
-      document.getElementById('dice-val').innerText = dice;
+      animateDice(dice);
       if (myColor === turnColor) {
         document.getElementById('roll-btn').disabled = true;
       }
     });
 
     socket.on('state_update', ({ pawns, turnColor }) => {
-      currentPawns = pawns;
       setTurn(turnColor);
       renderPawns(pawns);
     });
@@ -202,7 +297,7 @@
       currentTurnColor = color;
       const turnTxt = document.getElementById('turn-txt');
       turnTxt.innerText = color;
-      turnTxt.style.color = color.toLowerCase();
+      turnTxt.style.color = getColorHex(color);
       document.getElementById('roll-btn').disabled = (myColor !== color);
     }
 
@@ -214,30 +309,57 @@
       document.getElementById('display-code').innerText = code;
     }
 
-    function setupBoard() {
+    function animateDice(value) {
+      const dice = document.getElementById('dice-cube');
+      dice.classList.add('rolling');
+      setTimeout(() => {
+        displayDice(value);
+        dice.classList.remove('rolling');
+      }, 600);
+    }
+
+    function displayDice(value) {
+      for (let i = 1; i <= 9; i++) {
+        document.getElementById(`d${i}`).style.visibility = 'hidden';
+      }
+      const activeDots = DICE_PATTERNS[value] || [];
+      activeDots.forEach(idx => {
+        document.getElementById(`d${idx}`).style.visibility = 'visible';
+      });
+    }
+
+    function setupBoard(activeColors = ['Blue', 'Red', 'Yellow', 'Green']) {
       const board = document.getElementById('board');
       board.innerHTML = '';
+
       for (let r = 0; r < 15; r++) {
         for (let c = 0; c < 15; c++) {
           const cell = document.createElement('div');
           cell.className = 'cell';
           cell.id = `cell-${r}-${c}`;
-          
-          // Colorare colturi (baze)
-          if (r < 6 && c < 6) cell.classList.add('cell-blue');
-          else if (r < 6 && c > 8) cell.classList.add('cell-red');
-          else if (r > 8 && c > 8) cell.classList.add('cell-yellow');
-          else if (r > 8 && c < 6) cell.classList.add('cell-green');
-          
+
+          // Identificare baze si stilizare dinamica
+          if (r < 6 && c < 6) {
+            cell.classList.add(activeColors.includes('Blue') ? 'cell-blue' : 'cell-disabled');
+          } else if (r < 6 && c > 8) {
+            cell.classList.add(activeColors.includes('Red') ? 'cell-red' : 'cell-disabled');
+          } else if (r > 8 && c > 8) {
+            cell.classList.add(activeColors.includes('Yellow') ? 'cell-yellow' : 'cell-disabled');
+          } else if (r > 8 && c < 6) {
+            cell.classList.add(activeColors.includes('Green') ? 'cell-green' : 'cell-disabled');
+          }
+
           board.appendChild(cell);
         }
       }
     }
 
-    function renderPawns(pawns) {
+    function renderPawns(pawns, activeColors = ['Blue', 'Red', 'Yellow', 'Green']) {
       document.querySelectorAll('.pawn').forEach(el => el.remove());
 
       for (const color in pawns) {
+        if (!activeColors.includes(color)) continue;
+
         pawns[color].forEach((pos, idx) => {
           let coords = null;
           if (pos === -1) {
@@ -259,6 +381,16 @@
             }
           }
         });
+      }
+    }
+
+    function getColorHex(color) {
+      switch(color) {
+        case 'Blue': return '#3b82f6';
+        case 'Red': return '#ef4444';
+        case 'Yellow': return '#eab308';
+        case 'Green': return '#22c55e';
+        default: return '#000';
       }
     }
   </script>
