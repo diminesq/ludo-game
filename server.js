@@ -26,8 +26,9 @@ const START_OFFSETS = {
   Green: 30
 };
 
+// Generare cod format strict din 4 CIFRE
 function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
 io.on('connection', (socket) => {
@@ -60,10 +61,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join_room', ({ playerName, roomCode }) => {
-    const code = roomCode.toUpperCase().trim();
+    const code = roomCode.trim();
     const room = rooms[code];
 
-    if (!room) return socket.emit('error_message', 'Room not found.');
+    if (!room) return socket.emit('error_message', 'Room not found. Please check the 4-digit code.');
     if (room.gameStarted) return socket.emit('error_message', 'Game already started.');
     if (room.players.length >= room.maxPlayers) return socket.emit('error_message', 'Room is full.');
 
@@ -105,9 +106,6 @@ io.on('connection', (socket) => {
     const color = currentPlayer.color;
     const playerPawns = room.pawns[color];
 
-    // Verificam ce pioni pot fi miscati
-    // Daca zarul e 6, putem scoate un pion din baza (-1) SAU putem inainta cu cei activi (>=0)
-    // Daca zarul NU e 6, putem muta DOAR pionii deja scosi pe traseu (>=0)
     const movableIndices = [];
     playerPawns.forEach((pos, idx) => {
       if (pos === -1 && dice === 6) {
@@ -124,11 +122,8 @@ io.on('connection', (socket) => {
     });
 
     if (movableIndices.length > 0) {
-      // Jucatorul trebuie sa faca o alegere (sa apese pe un pion)
       room.awaitingMove = true;
     } else {
-      // Nicio miscare posibila:
-      // Daca nu a dat 6 si toti sunt in baza, trece direct la urmatorul
       setTimeout(() => {
         nextTurn(roomCode);
       }, 1000);
@@ -148,16 +143,13 @@ io.on('connection', (socket) => {
     let moved = false;
 
     if (pos === -1 && dice === 6) {
-      // Scoate pion din baza la start
       room.pawns[color][pawnIndex] = 0;
       moved = true;
     } else if (pos >= 0 && pos + dice <= 44) {
-      // Inainteaza pionul cu valoarea zarului
       pos += dice;
       room.pawns[color][pawnIndex] = pos;
       moved = true;
 
-      // Logica de capturare adversar
       if (pos < 40) {
         const globalTarget = (pos + START_OFFSETS[color]) % 40;
         room.players.forEach(p => {
@@ -166,7 +158,7 @@ io.on('connection', (socket) => {
               if (otherPos >= 0 && otherPos < 40) {
                 const otherGlobal = (otherPos + START_OFFSETS[p.color]) % 40;
                 if (otherGlobal === globalTarget) {
-                  room.pawns[p.color][oIdx] = -1; // trimis inapoi in baza
+                  room.pawns[p.color][oIdx] = -1;
                 }
               }
             });
@@ -179,7 +171,6 @@ io.on('connection', (socket) => {
       room.awaitingMove = false;
 
       if (dice === 6) {
-        // DACA A DAT 6: Mai da o data! Nu predam rândul.
         room.diceRolled = false;
         room.diceValue = null;
         io.to(roomCode).emit('state_update', {
@@ -189,7 +180,6 @@ io.on('connection', (socket) => {
           message: `${currentPlayer.name} rolled a 6! Roll again.`
         });
       } else {
-        // DACA NU A DAT 6: Trece la urmatorul jucator
         nextTurn(roomCode);
       }
     }
