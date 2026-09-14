@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ludo 3D Experience</title>
+  <title>Ludo Online</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -39,7 +39,6 @@
     ul { list-style: none; padding: 0; }
     li { padding: 8px 12px; background: #f1f5f9; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* Game Layout */
     #game-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
     .status-panel {
@@ -53,7 +52,6 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
 
-    /* 3D-ish Dice */
     .dice-container { perspective: 600px; width: 55px; height: 55px; cursor: pointer; }
     .dice {
       width: 55px; height: 55px;
@@ -76,7 +74,6 @@
       visibility: hidden;
     }
 
-    /* 3D-ish Ludo Board */
     .board-wrapper {
       background: #0f172a;
       padding: 16px;
@@ -108,7 +105,6 @@
     .cell-green { background: #22c55e !important; }
     .cell-disabled { background: #475569 !important; opacity: 0.3; filter: grayscale(1); }
 
-    /* 3D-ish Pawns */
     .pawn {
       width: 24px; height: 24px;
       border-radius: 50%;
@@ -128,7 +124,6 @@
     .pawn-Yellow { background: radial-gradient(circle at 35% 35%, #fde047, #b45309); border: 2px solid #fef08a; }
     .pawn-Green { background: radial-gradient(circle at 35% 35%, #4ade80, #15803d); border: 2px solid #86efac; }
 
-    /* Efect de selectie pion miscabil */
     .pawn-selectable {
       cursor: pointer !important;
       animation: pulseHighlight 0.8s infinite alternate;
@@ -144,8 +139,9 @@
 </head>
 <body>
 
+  <!-- Menu View -->
   <div class="card" id="menu-view">
-    <h2>Ludo 3D Match</h2>
+    <h2>Ludo Online</h2>
     <div class="form-group">
       <label>Player Name:</label>
       <input type="text" id="player-name" placeholder="Enter your name" />
@@ -164,20 +160,29 @@
     <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
     <h3>Join Game</h3>
     <div class="form-group">
-      <input type="text" id="room-code-input" placeholder="Room Code (e.g. 5GA8K1)" />
+      <input 
+        type="text" 
+        id="room-code-input" 
+        placeholder="4-digit code (e.g. 5421)" 
+        maxlength="4" 
+        pattern="\d{4}" 
+        oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
+      />
       <button onclick="joinRoom()">Join Game</button>
     </div>
   </div>
 
+  <!-- Waiting Room -->
   <div class="card hidden" id="lobby-view">
     <h2>Game Lobby</h2>
     <p style="font-size: 0.9rem;">Invite Link:</p>
     <div class="invite-box" id="invite-link"></div>
-    <p>Room Code: <strong id="display-code"></strong></p>
+    <p>Room Code: <strong id="display-code" style="font-size: 1.2rem; letter-spacing: 2px;"></strong></p>
     <ul id="players-list"></ul>
     <button id="start-btn" class="hidden" onclick="startGame()">Start Match</button>
   </div>
 
+  <!-- Board Screen -->
   <div id="game-container" class="hidden">
     <div class="status-panel">
       <div>Turn: <strong id="turn-txt">-</strong></div>
@@ -240,7 +245,8 @@
     function joinRoom() {
       const playerName = document.getElementById('player-name').value.trim();
       const roomCode = document.getElementById('room-code-input').value.trim();
-      if (!playerName || !roomCode) return alert('Fill in name and room code!');
+      if (!playerName) return alert('Please enter your name!');
+      if (roomCode.length !== 4) return alert('Please enter a valid 4-digit code!');
       socket.emit('join_room', { playerName, roomCode });
     }
 
@@ -291,7 +297,6 @@
 
     socket.on('dice_rolled', ({ dice, turnColor, movableIndices }) => {
       animateDice(dice);
-      // Blocăm butonul de zar cât timp jucătorul trebuie să aleagă piesa de mutat
       document.getElementById('roll-btn').disabled = true;
 
       if (myColor === turnColor) {
@@ -304,6 +309,10 @@
       lastPawnsState = pawns;
       setTurn(turnColor);
       renderPawns(pawns, []);
+    });
+
+    socket.on('error_message', (msg) => {
+      alert(msg);
     });
 
     function setTurn(color) {
@@ -389,7 +398,6 @@
               const p = document.createElement('div');
               p.className = `pawn pawn-${color}`;
 
-              // Dacă e tura mea și acest pion are mutare permisă de zar
               if (color === myColor && movableIndices.includes(idx)) {
                 p.classList.add('pawn-selectable');
                 p.onclick = () => movePawn(idx);
