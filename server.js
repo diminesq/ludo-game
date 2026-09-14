@@ -26,7 +26,6 @@ const START_OFFSETS = {
   Green: 30
 };
 
-// Generare cod format strict din 4 CIFRE
 function generateRoomCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -126,7 +125,7 @@ io.on('connection', (socket) => {
     } else {
       setTimeout(() => {
         nextTurn(roomCode);
-      }, 1000);
+      }, 1200);
     }
   });
 
@@ -141,6 +140,7 @@ io.on('connection', (socket) => {
     const dice = room.diceValue;
     let pos = room.pawns[color][pawnIndex];
     let moved = false;
+    let captured = false;
 
     if (pos === -1 && dice === 6) {
       room.pawns[color][pawnIndex] = 0;
@@ -159,6 +159,7 @@ io.on('connection', (socket) => {
                 const otherGlobal = (otherPos + START_OFFSETS[p.color]) % 40;
                 if (otherGlobal === globalTarget) {
                   room.pawns[p.color][oIdx] = -1;
+                  captured = true;
                 }
               }
             });
@@ -169,6 +170,7 @@ io.on('connection', (socket) => {
 
     if (moved) {
       room.awaitingMove = false;
+      io.to(roomCode).emit('pawn_moved_sound', { captured });
 
       if (dice === 6) {
         room.diceRolled = false;
