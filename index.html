@@ -52,7 +52,6 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
 
-    /* Zar 3D */
     .dice-container { perspective: 600px; width: 52px; height: 52px; cursor: pointer; }
     .dice {
       width: 52px; height: 52px;
@@ -74,7 +73,7 @@
       margin: auto; visibility: hidden;
     }
 
-    /* Tabla de joc conform imaginii clasice */
+    /* Tabla din lemn */
     .board-wrapper {
       background: #e2b980;
       padding: 14px;
@@ -95,6 +94,7 @@
       background: #ffffff;
       display: flex; justify-content: center; align-items: center;
       position: relative;
+      overflow: hidden;
     }
 
     .cell-blue { background: #0070ba !important; }
@@ -102,7 +102,7 @@
     .cell-yellow { background: #eab308 !important; }
     .cell-green { background: #16a34a !important; }
     .cell-wood { background: #e2b980 !important; border: none; }
-    .cell-disabled { background: #94a3b8 !important; opacity: 0.4; }
+    .cell-inactive { background: #cbd5e1 !important; opacity: 0.35; }
 
     .base-spot {
       width: 22px; height: 22px; background: #ffffff;
@@ -110,7 +110,16 @@
       border: 1px solid rgba(0,0,0,0.2);
     }
 
-    /* Pioni */
+    .pawn-wrapper {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 2px;
+      width: 100%;
+      height: 100%;
+    }
+
     .pawn {
       width: 22px; height: 22px;
       border-radius: 50%;
@@ -118,6 +127,11 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.4);
       z-index: 5;
     }
+    .pawn.double-pawn {
+      width: 15px; height: 15px;
+      border-width: 1.5px;
+    }
+
     .pawn::after {
       content: ''; position: absolute; top: 2px; left: 4px;
       width: 5px; height: 4px; border-radius: 50%;
@@ -136,8 +150,8 @@
     }
 
     @keyframes pulseHighlight {
-      0% { transform: scale(1.1); box-shadow: 0 0 4px 2px #fff; }
-      100% { transform: scale(1.3); box-shadow: 0 0 12px 4px #facc15; }
+      0% { transform: scale(1.05); box-shadow: 0 0 4px 2px #fff; }
+      100% { transform: scale(1.25); box-shadow: 0 0 12px 4px #facc15; }
     }
   </style>
 </head>
@@ -213,7 +227,6 @@
     let currentTurnColor = null;
     let activeColorsList = ['Blue', 'Red', 'Yellow', 'Green'];
 
-    // --- Web Audio API (Sinteza audio nativa) ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function playDiceSound() {
@@ -264,7 +277,6 @@
       osc.stop(audioCtx.currentTime + 0.25);
     }
 
-    // --- Autocompletare automata cod din URL ---
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
     if (roomParam) {
@@ -273,26 +285,23 @@
       document.getElementById('player-name').focus();
     }
 
-    // Traseul complet 0-39 (Clockwise) conform desenului tau
+    // EXACT 40 DE CĂSUȚE CONTINUE (Fiecare braț are fix 10 căsuțe perimetrice, fără salturi)
     const TRACK_COORDS = [
-      /* 0: Start Blue */ [6, 1], 
-      [6, 2], [6, 3], [6, 4], [6, 5],
-      [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], 
-      [0, 6], 
-      /* 10: Start Red */ [1, 8], 
-      [2, 8], [3, 8], [4, 8], [5, 8],
-      [6, 9], [6, 10], [6, 11], [6, 12], 
-      /* 20: Start Yellow */ [8, 13], 
-      [8, 12], [8, 11], [8, 10], [8, 9],
-      [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], 
-      [14, 8], 
-      /* 30: Start Green */ [13, 6], 
-      [12, 6], [11, 6], [10, 6], [9, 6],
-      [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], 
-      [7, 0]
+      // Braț 1 (Blue -> Red)
+      /* 0: START BLUE */ [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+      [5, 6], [4, 6], [3, 6], [2, 6], [1, 6],
+      // Braț 2 (Red -> Yellow)
+      /* 10: START RED */ [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+      [6, 9], [6, 10], [6, 11], [6, 12], [6, 13],
+      // Braț 3 (Yellow -> Green)
+      /* 20: START YELLOW */ [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
+      [9, 8], [10, 8], [11, 8], [12, 8], [13, 8],
+      // Braț 4 (Green -> Blue)
+      /* 30: START GREEN */ [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
+      [8, 5], [8, 4], [8, 3], [8, 2], [8, 1]
     ];
 
-    // Casutele de sosire ("Casa")
+    // Căsuțele de casă (4 pași per culoare)
     const HOME_TRACK_COORDS = {
       Blue: [[7, 1], [7, 2], [7, 3], [7, 4]],
       Red: [[1, 7], [2, 7], [3, 7], [4, 7]],
@@ -442,6 +451,7 @@
       });
     }
 
+    // Configurare tabla dinamică în funcție de jucătorii activi
     function setupBoard(activeColors) {
       const board = document.getElementById('board');
       board.innerHTML = '';
@@ -452,42 +462,56 @@
           cell.className = 'cell';
           cell.id = `cell-${r}-${c}`;
 
-          const isCornerArea = (r < 6 && c < 6) || (r < 6 && c > 8) || (r > 8 && c > 8) || (r > 8 && c < 6);
+          const isCornerBlue = (r < 6 && c < 6);
+          const isCornerRed = (r < 6 && c > 8);
+          const isCornerYellow = (r > 8 && c > 8);
+          const isCornerGreen = (r > 8 && c < 6);
 
-          if (isCornerArea) {
-            cell.classList.add('cell-wood');
+          // Baze
+          if (isCornerBlue || isCornerRed || isCornerYellow || isCornerGreen) {
+            let active = false;
+            if (isCornerBlue && activeColors.includes('Blue')) active = true;
+            if (isCornerRed && activeColors.includes('Red')) active = true;
+            if (isCornerYellow && activeColors.includes('Yellow')) active = true;
+            if (isCornerGreen && activeColors.includes('Green')) active = true;
 
-            const isBaseSpot = (
-              ((r===2||r===3) && (c===2||c===3)) ||
-              ((r===2||r===3) && (c===11||c===12)) ||
-              ((r===11||r===12) && (c===11||c===12)) ||
-              ((r===11||r===12) && (c===2||c===3))
-            );
+            cell.classList.add(active ? 'cell-wood' : 'cell-inactive');
 
-            if (isBaseSpot) {
-              const spot = document.createElement('div');
-              spot.className = 'base-spot';
-              cell.appendChild(spot);
+            if (active) {
+              const isBaseSpot = (
+                ((r===2||r===3) && (c===2||c===3)) ||
+                ((r===2||r===3) && (c===11||c===12)) ||
+                ((r===11||r===12) && (c===11||c===12)) ||
+                ((r===11||r===12) && (c===2||c===3))
+              );
+
+              if (isBaseSpot) {
+                const spot = document.createElement('div');
+                spot.className = 'base-spot';
+                cell.appendChild(spot);
+              }
             }
           }
 
-          // Casutele de START
-          if (r === 6 && c === 1) cell.classList.add('cell-blue');
-          if (r === 1 && c === 8) cell.classList.add('cell-red');
-          if (r === 8 && c === 13) cell.classList.add('cell-yellow');
-          if (r === 13 && c === 6) cell.classList.add('cell-green');
+          // Căsuțe Start
+          if (r === 6 && c === 1 && activeColors.includes('Blue')) cell.classList.add('cell-blue');
+          if (r === 1 && c === 8 && activeColors.includes('Red')) cell.classList.add('cell-red');
+          if (r === 8 && c === 13 && activeColors.includes('Yellow')) cell.classList.add('cell-yellow');
+          if (r === 13 && c === 6 && activeColors.includes('Green')) cell.classList.add('cell-green');
 
-          // Calea de acces in CASA
-          if (r === 7 && c >= 1 && c <= 4) cell.classList.add('cell-blue');
-          if (c === 7 && r >= 1 && r <= 4) cell.classList.add('cell-red');
-          if (r === 7 && c >= 10 && c <= 13) cell.classList.add('cell-yellow');
-          if (c === 7 && r >= 10 && r <= 13) cell.classList.add('cell-green');
-
-          // Triunghiurile centrale
-          if (r === 7 && c === 6) cell.classList.add('cell-blue');
-          if (r === 6 && c === 7) cell.classList.add('cell-red');
-          if (r === 7 && c === 8) cell.classList.add('cell-yellow');
-          if (r === 8 && c === 7) cell.classList.add('cell-green');
+          // Coloane de final (CASA)
+          if (r === 7 && c >= 1 && c <= 4) {
+            cell.classList.add(activeColors.includes('Blue') ? 'cell-blue' : 'cell-inactive');
+          }
+          if (c === 7 && r >= 1 && r <= 4) {
+            cell.classList.add(activeColors.includes('Red') ? 'cell-red' : 'cell-inactive');
+          }
+          if (r === 7 && c >= 10 && c <= 13) {
+            cell.classList.add(activeColors.includes('Yellow') ? 'cell-yellow' : 'cell-inactive');
+          }
+          if (c === 7 && r >= 10 && r <= 13) {
+            cell.classList.add(activeColors.includes('Green') ? 'cell-green' : 'cell-inactive');
+          }
 
           board.appendChild(cell);
         }
@@ -497,15 +521,22 @@
     function renderPawns(pawns, movableIndices = []) {
       if (!pawns) return;
       lastPawnsState = pawns;
+      
       document.querySelectorAll('.pawn').forEach(el => el.remove());
+      document.querySelectorAll('.pawn-wrapper').forEach(el => el.remove());
+
+      const cellMap = {};
 
       for (const color in pawns) {
         if (!activeColorsList.includes(color)) continue;
 
         pawns[color].forEach((pos, idx) => {
           let coords = null;
+          let isBase = false;
+
           if (pos === -1) {
             coords = BASE_COORDS[color][idx];
+            isBase = true;
           } else if (pos < 40) {
             const globalPos = (pos + START_OFFSETS[color]) % 40;
             coords = TRACK_COORDS[globalPos];
@@ -514,23 +545,48 @@
           }
 
           if (coords) {
-            const cell = document.getElementById(`cell-${coords[0]}-${coords[1]}`);
-            if (cell) {
-              const p = document.createElement('div');
-              p.className = `pawn pawn-${color}`;
+            const cellKey = `cell-${coords[0]}-${coords[1]}`;
+            if (!cellMap[cellKey]) cellMap[cellKey] = [];
+            cellMap[cellKey].push({ color, idx, isBase });
+          }
+        });
+      }
 
-              if (color === myColor && movableIndices.includes(idx)) {
-                p.classList.add('pawn-selectable');
-                p.onclick = () => movePawn(idx);
-              }
+      for (const cellId in cellMap) {
+        const cell = document.getElementById(cellId);
+        if (!cell) continue;
 
-              const spot = cell.querySelector('.base-spot');
-              if (spot) {
-                spot.appendChild(p);
-              } else {
-                cell.appendChild(p);
-              }
-            }
+        const pList = cellMap[cellId];
+        const isDouble = pList.length > 1;
+
+        let container = cell;
+        if (!pList[0].isBase) {
+          container = document.createElement('div');
+          container.className = 'pawn-wrapper';
+          cell.appendChild(container);
+        }
+
+        pList.forEach(item => {
+          const p = document.createElement('div');
+          p.className = `pawn pawn-${item.color}`;
+          if (isDouble && !item.isBase) {
+            p.classList.add('double-pawn');
+          }
+
+          if (item.color === myColor && movableIndices.includes(item.idx)) {
+            p.classList.add('pawn-selectable');
+            p.onclick = (e) => {
+              e.stopPropagation();
+              movePawn(item.idx);
+            };
+          }
+
+          if (item.isBase) {
+            const spot = cell.querySelector('.base-spot');
+            if (spot) spot.appendChild(p);
+            else cell.appendChild(p);
+          } else {
+            container.appendChild(p);
           }
         });
       }
