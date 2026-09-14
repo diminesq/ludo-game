@@ -19,7 +19,7 @@ const PLAYER_SLOTS = {
   4: ['Blue', 'Red', 'Yellow', 'Green']
 };
 
-// Start offsets pe circuitul de 40 casute (0..39)
+// Start offsets precise pe circuitul de 40 casute (0..39)
 const START_OFFSETS = {
   Blue: 0,
   Red: 10,
@@ -27,7 +27,6 @@ const START_OFFSETS = {
   Green: 30
 };
 
-// Generare cod format strict din 4 cifre
 function generateRoomCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -107,12 +106,19 @@ io.on('connection', (socket) => {
     const color = currentPlayer.color;
     const playerPawns = room.pawns[color];
 
+    const countAtPos = (pos) => playerPawns.filter(p => p === pos).length;
+
     const movableIndices = [];
     playerPawns.forEach((pos, idx) => {
       if (pos === -1 && dice === 6) {
-        movableIndices.push(idx);
-      } else if (pos >= 0 && pos + dice <= 44) {
-        movableIndices.push(idx);
+        if (countAtPos(0) < 2) {
+          movableIndices.push(idx);
+        }
+      } else if (pos >= 0 && pos + dice <= 43) {
+        const destPos = pos + dice;
+        if (countAtPos(destPos) < 2) {
+          movableIndices.push(idx);
+        }
       }
     });
 
@@ -147,12 +153,12 @@ io.on('connection', (socket) => {
     if (pos === -1 && dice === 6) {
       room.pawns[color][pawnIndex] = 0;
       moved = true;
-    } else if (pos >= 0 && pos + dice <= 44) {
+    } else if (pos >= 0 && pos + dice <= 43) {
       pos += dice;
       room.pawns[color][pawnIndex] = pos;
       moved = true;
 
-      // Logica de captura pe circuitul comun (0..39)
+      // Captură pe circuitul comun (0..39)
       if (pos < 40) {
         const globalTarget = (pos + START_OFFSETS[color]) % 40;
         room.players.forEach(p => {
