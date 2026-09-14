@@ -19,6 +19,7 @@ const PLAYER_SLOTS = {
   4: ['Blue', 'Red', 'Yellow', 'Green']
 };
 
+// Start offsets pe circuitul de 40 casute (0..39)
 const START_OFFSETS = {
   Blue: 0,
   Red: 10,
@@ -26,6 +27,7 @@ const START_OFFSETS = {
   Green: 30
 };
 
+// Generare cod format strict din 4 cifre
 function generateRoomCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -150,6 +152,7 @@ io.on('connection', (socket) => {
       room.pawns[color][pawnIndex] = pos;
       moved = true;
 
+      // Logica de captura pe circuitul comun (0..39)
       if (pos < 40) {
         const globalTarget = (pos + START_OFFSETS[color]) % 40;
         room.players.forEach(p => {
